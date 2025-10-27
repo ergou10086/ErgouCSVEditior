@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.Region?>
+
+<BorderPane fx:id="rootPane" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="hbnu.project.ergoucsveditior.controller.MainController"
+            prefHeight="600.0" prefWidth="900.0"
+            stylesheets="@styles.css">
+    
+    <!-- 顶部菜单栏 -->
+    <top>
+        <VBox>
+            <MenuBar>
+                <Menu text="文件">
+                    <MenuItem text="新建" onAction="#handleNew"/>
+                    <MenuItem text="打开..." onAction="#handleOpen"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="保存" onAction="#handleSave"/>
+                    <MenuItem text="另存为..." onAction="#handleSaveAs"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="退出" onAction="#handleExit"/>
+                </Menu>
+                
+                <Menu text="编辑">
+                    <MenuItem text="撤销" onAction="#handleUndo" accelerator="Ctrl+Z"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="查找..." onAction="#handleSearch" accelerator="Ctrl+F"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="添加行" onAction="#handleAddRow"/>
+                    <MenuItem text="添加列" onAction="#handleAddColumn"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="删除选中行" onAction="#handleDeleteRow"/>
+                    <MenuItem text="删除选中列" onAction="#handleDeleteColumn"/>
+                </Menu>
+                
+                <Menu text="工具">
+                    <MenuItem text="自动标记工具..." onAction="#handleAutoMark"/>
+                    <MenuItem text="数值列统计计算..." onAction="#handleColumnStatistics"/>
+                    <MenuItem text="MySQL数据库持久化..." onAction="#handleDatabasePersistence"/>
+                    <SeparatorMenuItem/>
+                    <Menu text="导出工具">
+                        <Menu text="基本格式">
+                            <MenuItem text="导出为CSV..." onAction="#handleExportToCSV"/>
+                            <MenuItem text="导出为TXT..." onAction="#handleExportToTXT"/>
+                            <MenuItem text="导出为HTML..." onAction="#handleExportToHTML"/>
+                        </Menu>
+                        <Menu text="高级格式">
+                            <MenuItem text="导出为Excel..." onAction="#handleExportToExcel"/>
+                            <MenuItem text="导出为PDF..." onAction="#handleExportToPDF"/>
+                            <MenuItem text="导出为Markdown..." onAction="#handleExportToMarkdown"/>
+                        </Menu>
+                        <SeparatorMenuItem/>
+                        <MenuItem text="导出设置..." onAction="#handleExportSettings"/>
+                    </Menu>
+                </Menu>
+                
+                <Menu text="设置">
+                    <MenuItem text="应用设置..." onAction="#handleSettings"/>
+                    <MenuItem text="主题设置..." onAction="#handleThemeSettings"/>
+                    <MenuItem text="快捷键设置..." onAction="#handleKeyBindings"/>
+                    <MenuItem text="工具栏设置..." onAction="#handleToolbarSettings"/>
+                    <MenuItem text="高亮设置..." onAction="#handleHighlightSettings"/>
+                </Menu>
+                
+                <Menu text="帮助">
+                    <MenuItem text="关于" onAction="#handleAbout"/>
+                </Menu>
+            </MenuBar>
+            
+            <!-- 工具栏 - 将由代码动态生成 -->
+            <ToolBar fx:id="toolbar">
+                <!-- 按钮将由 MainController 动态添加 -->
+            </ToolBar>
+        </VBox>
+    </top>
+    
+    <!-- 中间表格区域 -->
+    <center>
+        <TableView fx:id="tableView" BorderPane.alignment="CENTER"/>
+    </center>
+    
+    <!-- 底部状态栏 -->
+    <bottom>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="10.0">
+            <padding>
+                <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
+            </padding>
+            <Label text="状态:"/>
+            <Label fx:id="statusLabel" text="就绪"/>
+            <!-- 使用Spacer推到右边 -->
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="位置:"/>
+            <Label fx:id="positionLabel" text="未选中"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>
+
