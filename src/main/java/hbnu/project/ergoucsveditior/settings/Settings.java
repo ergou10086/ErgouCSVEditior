@@ -1,5 +1,6 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.settings;
 
+import hbnu.project.ergoucsveditior.manager.ConfigManager;
 import java.io.*;
 import java.util.Properties;
 
@@ -7,7 +8,6 @@ import java.util.Properties;
  * 应用设置管理
  */
 public class Settings {
-    private static final String SETTINGS_FILE = "csv_editor_settings.properties";
     private Properties properties;
     
     // 设置项
@@ -102,10 +102,9 @@ public class Settings {
      * 从文件加载设置
      */
     public void load() {
-        File file = new File(SETTINGS_FILE);
-        if (file.exists()) {
-            try (FileInputStream fis = new FileInputStream(file)) {
-                properties.load(fis);
+        try (InputStream is = ConfigManager.getConfigInputStream(ConfigManager.SETTINGS_FILE)) {
+            if (is != null) {
+                properties.load(is);
                 
                 defaultEncoding = properties.getProperty("defaultEncoding", defaultEncoding);
                 maxHistorySize = Integer.parseInt(properties.getProperty("maxHistorySize", String.valueOf(maxHistorySize)));
@@ -144,10 +143,10 @@ public class Settings {
                 minRowHeight = Double.parseDouble(properties.getProperty("minRowHeight", String.valueOf(minRowHeight)));
                 maxRowHeight = Double.parseDouble(properties.getProperty("maxRowHeight", String.valueOf(maxRowHeight)));
                 tableZoomLevel = Double.parseDouble(properties.getProperty("tableZoomLevel", String.valueOf(tableZoomLevel)));
-            } catch (IOException | NumberFormatException e) {
-                // 加载失败，使用默认设置
-                loadDefaults();
             }
+        } catch (IOException | NumberFormatException e) {
+            // 加载失败，使用默认设置
+            loadDefaults();
         }
     }
     
@@ -193,8 +192,8 @@ public class Settings {
         properties.setProperty("maxRowHeight", String.valueOf(maxRowHeight));
         properties.setProperty("tableZoomLevel", String.valueOf(tableZoomLevel));
         
-        try (FileOutputStream fos = new FileOutputStream(SETTINGS_FILE)) {
-            properties.store(fos, "CSV Editor Settings");
+        try (OutputStream os = ConfigManager.getConfigOutputStream(ConfigManager.SETTINGS_FILE)) {
+            properties.store(os, "CSV Editor Settings");
         } catch (IOException e) {
             e.printStackTrace();
         }

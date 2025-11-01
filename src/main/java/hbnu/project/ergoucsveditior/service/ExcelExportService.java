@@ -1,8 +1,8 @@
 package hbnu.project.ergoucsveditior.service;
 
 import hbnu.project.ergoucsveditior.model.CSVData;
-import hbnu.project.ergoucsveditior.model.ExportSettings;
-import hbnu.project.ergoucsveditior.model.HighlightManager;
+import hbnu.project.ergoucsveditior.settings.ExportSettings;
+import hbnu.project.ergoucsveditior.manager.HighlightManager;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;

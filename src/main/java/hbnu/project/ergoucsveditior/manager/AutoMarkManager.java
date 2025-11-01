@@ -1,4 +1,7 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.manager;
+
+import hbnu.project.ergoucsveditior.rule.AutoMarkRule;
+import hbnu.project.ergoucsveditior.model.CSVData;
 
 import java.util.*;
 import java.util.regex.Pattern;

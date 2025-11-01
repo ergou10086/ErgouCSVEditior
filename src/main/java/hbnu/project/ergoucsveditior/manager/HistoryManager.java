@@ -1,5 +1,7 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.manager;
 
+import hbnu.project.ergoucsveditior.model.CSVCell;
+import hbnu.project.ergoucsveditior.model.CSVData;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 

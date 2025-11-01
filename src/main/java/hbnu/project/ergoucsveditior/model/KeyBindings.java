@@ -1,5 +1,6 @@
 package hbnu.project.ergoucsveditior.model;
 
+import hbnu.project.ergoucsveditior.manager.ConfigManager;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -13,7 +14,6 @@ import java.util.Properties;
  * 快捷键绑定管理
  */
 public class KeyBindings {
-    private static final String BINDINGS_FILE = "csv_editor_keybindings.properties";
     private Properties properties;
     private Map<String, KeyCombination> bindings;
     
@@ -36,6 +36,7 @@ public class KeyBindings {
     public static final String ACTION_PASTE = "paste";
     public static final String ACTION_CLEAR_CELL = "clearCell";
     public static final String ACTION_EXPORT_CSV = "exportCSV";
+    public static final String ACTION_ZOOM_TABLE = "zoomTable";  // 表格缩放（固定，不可修改）
     
     public KeyBindings() {
         properties = new Properties();
@@ -62,6 +63,8 @@ public class KeyBindings {
         bindings.put(ACTION_PASTE, new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN));
         bindings.put(ACTION_CLEAR_CELL, new KeyCodeCombination(KeyCode.DELETE));
         bindings.put(ACTION_EXPORT_CSV, new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN));
+        // 注意：表格缩放使用 Ctrl+滚轮，这是固定的，不可修改
+        bindings.put(ACTION_ZOOM_TABLE, null); // 用null表示这是一个特殊的鼠标操作，不是键盘快捷键
         // 其他操作默认不设置快捷键
     }
     
@@ -69,13 +72,17 @@ public class KeyBindings {
      * 从文件加载快捷键配置
      */
     public void load() {
-        File file = new File(BINDINGS_FILE);
-        if (file.exists()) {
-            try (FileInputStream fis = new FileInputStream(file)) {
-                properties.load(fis);
+        try (InputStream is = ConfigManager.getConfigInputStream(ConfigManager.KEYBINDINGS_FILE)) {
+            if (is != null) {
+                properties.load(is);
                 
                 // 从配置文件读取并解析快捷键
                 for (String action : properties.stringPropertyNames()) {
+                    // 跳过固定的快捷键（如缩放）
+                    if (!isModifiable(action)) {
+                        continue;
+                    }
+                    
                     String keyString = properties.getProperty(action);
                     if (keyString != null && !keyString.trim().isEmpty()) {
                         try {
@@ -86,9 +93,9 @@ public class KeyBindings {
                         }
                     }
                 }
-            } catch (IOException e) {
-                // 加载失败，使用默认设置
             }
+        } catch (IOException e) {
+            // 加载失败，使用默认设置
         }
     }
     
@@ -97,6 +104,11 @@ public class KeyBindings {
      */
     public void save() {
         for (Map.Entry<String, KeyCombination> entry : bindings.entrySet()) {
+            // 跳过固定的快捷键（如缩放）
+            if (!isModifiable(entry.getKey())) {
+                continue;
+            }
+            
             if (entry.getValue() != null) {
                 properties.setProperty(entry.getKey(), entry.getValue().toString());
             } else {
@@ -104,8 +116,8 @@ public class KeyBindings {
             }
         }
         
-        try (FileOutputStream fos = new FileOutputStream(BINDINGS_FILE)) {
-            properties.store(fos, "CSV Editor Key Bindings");
+        try (OutputStream os = ConfigManager.getConfigOutputStream(ConfigManager.KEYBINDINGS_FILE)) {
+            properties.store(os, "CSV Editor Key Bindings");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -162,6 +174,7 @@ public class KeyBindings {
             case ACTION_PASTE: return "粘贴";
             case ACTION_CLEAR_CELL: return "清除单元格";
             case ACTION_EXPORT_CSV: return "导出为CSV";
+            case ACTION_ZOOM_TABLE: return "表格缩放（Ctrl+滚轮）";
             default: return action;
         }
     }
@@ -171,6 +184,7 @@ public class KeyBindings {
      */
     public static String[] getAllActions() {
         return new String[] {
+            ACTION_ZOOM_TABLE,  // 放在第一位，因为只允许调整第一个快捷键
             ACTION_NEW,
             ACTION_OPEN,
             ACTION_SAVE,
@@ -190,6 +204,14 @@ public class KeyBindings {
             ACTION_CLEAR_CELL,
             ACTION_EXPORT_CSV
         };
+    }
+    
+    /**
+     * 判断某个快捷键是否可以修改
+     */
+    public static boolean isModifiable(String action) {
+        // 表格缩放快捷键固定为Ctrl+滚轮，不允许修改
+        return !ACTION_ZOOM_TABLE.equals(action);
     }
 }
 

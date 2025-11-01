@@ -1,4 +1,4 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.settings;
 
 import java.io.*;
 import java.util.Properties;

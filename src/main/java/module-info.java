@@ -24,4 +24,7 @@ module hbnu.project.ergoucsveditior {
     exports hbnu.project.ergoucsveditior.controller;
     exports hbnu.project.ergoucsveditior.model;
     exports hbnu.project.ergoucsveditior.service;
+    exports hbnu.project.ergoucsveditior.manager;
+    exports hbnu.project.ergoucsveditior.settings;
+    exports hbnu.project.ergoucsveditior.rule;
 }

@@ -1,9 +1,17 @@
 package hbnu.project.ergoucsveditior.controller;
 
+import hbnu.project.ergoucsveditior.manager.AutoMarkManager;
+import hbnu.project.ergoucsveditior.manager.HighlightManager;
+import hbnu.project.ergoucsveditior.manager.HistoryManager;
 import hbnu.project.ergoucsveditior.model.CSVCell;
 import hbnu.project.ergoucsveditior.model.CSVData;
 import hbnu.project.ergoucsveditior.model.HighlightInfo;
+import hbnu.project.ergoucsveditior.rule.AutoMarkRule;
 import hbnu.project.ergoucsveditior.service.CSVService;
+import hbnu.project.ergoucsveditior.settings.AutoMarkSettings;
+import hbnu.project.ergoucsveditior.settings.ExportSettings;
+import hbnu.project.ergoucsveditior.settings.Settings;
+import hbnu.project.ergoucsveditior.settings.ToolbarConfig;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -46,11 +54,11 @@ public class MainController {
     private CSVData csvData;
     private CSVService csvService;
     private File currentFile;
-    private hbnu.project.ergoucsveditior.model.HistoryManager historyManager;
-    private hbnu.project.ergoucsveditior.model.Settings settings;
+    private HistoryManager historyManager;
+    private Settings settings;
     private hbnu.project.ergoucsveditior.model.KeyBindings keyBindings;
-    private hbnu.project.ergoucsveditior.model.ToolbarConfig toolbarConfig;
-    private hbnu.project.ergoucsveditior.model.ExportSettings exportSettings;
+    private ToolbarConfig toolbarConfig;
+    private ExportSettings exportSettings;
     private boolean dataModified = false; // 标记数据是否被修改
     
     // 搜索相关
@@ -60,11 +68,11 @@ public class MainController {
     private boolean lastSearchCaseSensitive = false;
     
     // 高亮相关
-    private hbnu.project.ergoucsveditior.model.HighlightManager highlightManager;
+    private HighlightManager highlightManager;
     
     // 自动标记相关
-    private hbnu.project.ergoucsveditior.model.AutoMarkManager autoMarkManager;
-    private hbnu.project.ergoucsveditior.model.AutoMarkSettings autoMarkSettings;
+    private AutoMarkManager autoMarkManager;
+    private AutoMarkSettings autoMarkSettings;
     
     // 剪贴板
     private String clipboardContent = "";
@@ -76,21 +84,21 @@ public class MainController {
     public void initialize() {
         csvData = new CSVData();
         csvService = new CSVService();
-        settings = new hbnu.project.ergoucsveditior.model.Settings();
-        historyManager = new hbnu.project.ergoucsveditior.model.HistoryManager(settings.getMaxHistorySize());
+        settings = new Settings();
+        historyManager = new HistoryManager(settings.getMaxHistorySize());
         keyBindings = new hbnu.project.ergoucsveditior.model.KeyBindings();
-        highlightManager = new hbnu.project.ergoucsveditior.model.HighlightManager();
-        autoMarkManager = new hbnu.project.ergoucsveditior.model.AutoMarkManager();
-        autoMarkSettings = new hbnu.project.ergoucsveditior.model.AutoMarkSettings();
-        toolbarConfig = new hbnu.project.ergoucsveditior.model.ToolbarConfig();
-        exportSettings = new hbnu.project.ergoucsveditior.model.ExportSettings();
+        highlightManager = new HighlightManager();
+        autoMarkManager = new AutoMarkManager();
+        autoMarkSettings = new AutoMarkSettings();
+        toolbarConfig = new ToolbarConfig();
+        exportSettings = new ExportSettings();
         
         // 从设置中加载高亮冲突策略
         String strategyName = settings.getHighlightConflictStrategy();
         if ("随机策略".equals(strategyName)) {
-            highlightManager.setConflictStrategy(hbnu.project.ergoucsveditior.model.HighlightManager.ConflictStrategy.随机策略);
+            highlightManager.setConflictStrategy(HighlightManager.ConflictStrategy.随机策略);
         } else {
-            highlightManager.setConflictStrategy(hbnu.project.ergoucsveditior.model.HighlightManager.ConflictStrategy.覆盖策略);
+            highlightManager.setConflictStrategy(HighlightManager.ConflictStrategy.覆盖策略);
         }
         
         // 初始化工具栏
@@ -181,51 +189,53 @@ public class MainController {
      * 创建工具栏按钮
      */
     private Button createToolbarButton(String buttonId) {
-        Button button = new Button(hbnu.project.ergoucsveditior.model.ToolbarConfig.getButtonDisplayName(buttonId));
+        // 为按钮添加图标符号
+        String buttonText = getButtonTextWithIcon(buttonId);
+        Button button = new Button(buttonText);
         
         // 绑定事件处理器
         switch (buttonId) {
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_NEW:
+            case ToolbarConfig.BTN_NEW:
                 button.setOnAction(e -> handleNew());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_OPEN:
+            case ToolbarConfig.BTN_OPEN:
                 button.setOnAction(e -> handleOpen());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_SAVE:
+            case ToolbarConfig.BTN_SAVE:
                 button.setOnAction(e -> handleSave());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_SAVE_AS:
+            case ToolbarConfig.BTN_SAVE_AS:
                 button.setOnAction(e -> handleSaveAs());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_UNDO:
+            case ToolbarConfig.BTN_UNDO:
                 button.setOnAction(e -> handleUndo());
                 undoButton = button;
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_ADD_ROW:
+            case ToolbarConfig.BTN_ADD_ROW:
                 button.setOnAction(e -> handleAddRow());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_ADD_COLUMN:
+            case ToolbarConfig.BTN_ADD_COLUMN:
                 button.setOnAction(e -> handleAddColumn());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_DELETE_ROW:
+            case ToolbarConfig.BTN_DELETE_ROW:
                 button.setOnAction(e -> handleDeleteRow());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_DELETE_COLUMN:
+            case ToolbarConfig.BTN_DELETE_COLUMN:
                 button.setOnAction(e -> handleDeleteColumn());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_SEARCH:
+            case ToolbarConfig.BTN_SEARCH:
                 button.setOnAction(e -> handleSearch());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_HIGHLIGHT:
+            case ToolbarConfig.BTN_HIGHLIGHT:
                 button.setOnAction(e -> handleHighlightCell());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_CLEAR_HIGHLIGHT:
+            case ToolbarConfig.BTN_CLEAR_HIGHLIGHT:
                 button.setOnAction(e -> handleClearHighlight());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_AUTO_MARK:
+            case ToolbarConfig.BTN_AUTO_MARK:
                 button.setOnAction(e -> handleAutoMark());
                 break;
-            case hbnu.project.ergoucsveditior.model.ToolbarConfig.BTN_SETTINGS:
+            case ToolbarConfig.BTN_SETTINGS:
                 button.setOnAction(e -> handleSettings());
                 break;
             default:
@@ -236,6 +246,44 @@ public class MainController {
     }
     
     /**
+     * 获取带图标的按钮文本
+     */
+    private String getButtonTextWithIcon(String buttonId) {
+        switch (buttonId) {
+            case ToolbarConfig.BTN_NEW:
+                return "✨ 新建";
+            case ToolbarConfig.BTN_OPEN:
+                return "📂 打开";
+            case ToolbarConfig.BTN_SAVE:
+                return "💾 保存";
+            case ToolbarConfig.BTN_SAVE_AS:
+                return "💾 另存为";
+            case ToolbarConfig.BTN_UNDO:
+                return "↶ 撤销";
+            case ToolbarConfig.BTN_ADD_ROW:
+                return "➕ 添加行";
+            case ToolbarConfig.BTN_ADD_COLUMN:
+                return "➕ 添加列";
+            case ToolbarConfig.BTN_DELETE_ROW:
+                return "➖ 删除行";
+            case ToolbarConfig.BTN_DELETE_COLUMN:
+                return "➖ 删除列";
+            case ToolbarConfig.BTN_SEARCH:
+                return "🔍 搜索";
+            case ToolbarConfig.BTN_HIGHLIGHT:
+                return "✨ 高亮";
+            case ToolbarConfig.BTN_CLEAR_HIGHLIGHT:
+                return "🧹 清除高亮";
+            case ToolbarConfig.BTN_AUTO_MARK:
+                return "🏷️ 自动标记";
+            case ToolbarConfig.BTN_SETTINGS:
+                return "⚙️ 设置";
+            default:
+                return ToolbarConfig.getButtonDisplayName(buttonId);
+        }
+    }
+    
+    /**
      * 应用工具栏样式
      */
     private void applyToolbarStyle() {
@@ -243,32 +291,21 @@ public class MainController {
             return;
         }
         
-        String buttonColor = toolbarConfig.getButtonColor();
-        String buttonHoverColor = toolbarConfig.getButtonHoverColor();
-        String buttonTextColor = toolbarConfig.getButtonTextColor();
-        
         for (javafx.scene.Node node : toolbar.getItems()) {
             if (node instanceof Button) {
                 Button button = (Button) node;
-                button.setStyle(String.format(
-                    "-fx-background-color: %s; -fx-text-fill: %s; -fx-padding: 5 10 5 10;",
-                    buttonColor, buttonTextColor
-                ));
+                // 使用CSS样式类而不是内联样式
+                button.getStyleClass().add("button");
                 
-                // 添加悬停效果
-                button.setOnMouseEntered(e -> {
-                    button.setStyle(String.format(
-                        "-fx-background-color: %s; -fx-text-fill: %s; -fx-padding: 5 10 5 10;",
-                        buttonHoverColor, buttonTextColor
-                    ));
-                });
+                // 为不同类型的按钮添加不同的样式类
+                String text = button.getText();
+                if (text.contains("删除") || text.contains("清除")) {
+                    button.getStyleClass().add("secondary");
+                }
                 
-                button.setOnMouseExited(e -> {
-                    button.setStyle(String.format(
-                        "-fx-background-color: %s; -fx-text-fill: %s; -fx-padding: 5 10 5 10;",
-                        buttonColor, buttonTextColor
-                    ));
-                });
+                // 添加工具提示
+                Tooltip tooltip = new Tooltip(button.getText());
+                button.setTooltip(tooltip);
             }
         }
     }
@@ -1117,8 +1154,8 @@ public class MainController {
                 tableView.refresh();
             });
             
-            // 设置最小宽度，防止列太窄
-            column.setMinWidth(60);
+            // 设置列宽调整功能（包括最小/最大宽度限制和拖拽调整）
+            setupColumnResizing(column);
             
             // 允许用户调整列宽
             column.setResizable(true);
@@ -1129,7 +1166,7 @@ public class MainController {
         // 设置表格数据
         tableView.setItems(csvData.getData());
         
-        // 设置行工厂，用于优化无效行的显示样式和右键菜单
+        // 设置行工厂，用于优化无效行的显示样式、右键菜单和拖动功能
         tableView.setRowFactory(tv -> {
             TableRow<ObservableList<CSVCell>> row = new TableRow<>() {
                 @Override
@@ -1170,14 +1207,22 @@ public class MainController {
                 }
             });
             
+            // 设置行拖动功能
+            setupRowDragAndDrop(row);
+            
             return row;
         });
+        
+        // 应用行高设置
+        applyRowHeightSettings();
         
         // 使用Platform.runLater确保在表格渲染后调整列宽
         javafx.application.Platform.runLater(() -> {
             adjustColumnWidths();
             // 应用背景图片
             applyBackgroundImage();
+            // 应用当前缩放级别
+            applyTableZoom(settings.getTableZoomLevel());
         });
     }
     
@@ -1526,6 +1571,76 @@ public class MainController {
         grid.add(new Label("显示行号:"), 0, row);
         grid.add(showLineNumbersCheck, 1, row++);
         
+        // 添加分隔符
+        grid.add(new Separator(), 0, row++, 2, 1);
+        Label tableSizeLabel = new Label("表格尺寸设置：");
+        tableSizeLabel.setStyle("-fx-font-weight: bold;");
+        grid.add(tableSizeLabel, 0, row++, 2, 1);
+        
+        // 列宽模式
+        ComboBox<String> columnWidthModeCombo = new ComboBox<>();
+        columnWidthModeCombo.getItems().addAll("自动适配内容", "固定宽度");
+        columnWidthModeCombo.setValue(settings.getColumnWidthMode());
+        
+        grid.add(new Label("列宽模式:"), 0, row);
+        grid.add(columnWidthModeCombo, 1, row++);
+        
+        // 默认列宽
+        TextField defaultColumnWidthField = new TextField(String.valueOf(settings.getDefaultColumnWidth()));
+        defaultColumnWidthField.setDisable("自动适配内容".equals(settings.getColumnWidthMode()));
+        
+        grid.add(new Label("默认列宽(像素):"), 0, row);
+        grid.add(defaultColumnWidthField, 1, row++);
+        
+        columnWidthModeCombo.setOnAction(e -> {
+            defaultColumnWidthField.setDisable("自动适配内容".equals(columnWidthModeCombo.getValue()));
+        });
+        
+        // 最小列宽
+        TextField minColumnWidthField = new TextField(String.valueOf(settings.getMinColumnWidth()));
+        grid.add(new Label("最小列宽(像素):"), 0, row);
+        grid.add(minColumnWidthField, 1, row++);
+        
+        // 最大列宽
+        TextField maxColumnWidthField = new TextField(String.valueOf(settings.getMaxColumnWidth()));
+        grid.add(new Label("最大列宽(像素):"), 0, row);
+        grid.add(maxColumnWidthField, 1, row++);
+        
+        // 行高模式
+        ComboBox<String> rowHeightModeCombo = new ComboBox<>();
+        rowHeightModeCombo.getItems().addAll("自动适配内容", "固定高度");
+        rowHeightModeCombo.setValue(settings.getRowHeightMode());
+        
+        grid.add(new Label("行高模式:"), 0, row);
+        grid.add(rowHeightModeCombo, 1, row++);
+        
+        // 默认行高
+        TextField defaultRowHeightField = new TextField(String.valueOf(settings.getDefaultRowHeight()));
+        defaultRowHeightField.setDisable("自动适配内容".equals(settings.getRowHeightMode()));
+        
+        grid.add(new Label("默认行高(像素):"), 0, row);
+        grid.add(defaultRowHeightField, 1, row++);
+        
+        rowHeightModeCombo.setOnAction(e -> {
+            defaultRowHeightField.setDisable("自动适配内容".equals(rowHeightModeCombo.getValue()));
+        });
+        
+        // 最小行高
+        TextField minRowHeightField = new TextField(String.valueOf(settings.getMinRowHeight()));
+        grid.add(new Label("最小行高(像素):"), 0, row);
+        grid.add(minRowHeightField, 1, row++);
+        
+        // 最大行高
+        TextField maxRowHeightField = new TextField(String.valueOf(settings.getMaxRowHeight()));
+        grid.add(new Label("最大行高(像素):"), 0, row);
+        grid.add(maxRowHeightField, 1, row++);
+        
+        // 添加提示信息
+        Label sizeHint = new Label("提示：您可以通过拖拽列边缘调整列宽，\n使用Ctrl+滚轮缩放表格");
+        sizeHint.setStyle("-fx-font-size: 10px; -fx-text-fill: #666666;");
+        sizeHint.setWrapText(true);
+        grid.add(sizeHint, 0, row++, 2, 1);
+        
         dialog.getDialogPane().setContent(grid);
         
         // 转换结果
@@ -1545,19 +1660,29 @@ public class MainController {
                     settings.setFirstRowAsHeader(firstRowAsHeaderCheck.isSelected());
                     settings.setShowLineNumbers(showLineNumbersCheck.isSelected());
                     
+                    // 保存列宽和行高设置
+                    settings.setColumnWidthMode(columnWidthModeCombo.getValue());
+                    settings.setDefaultColumnWidth(Double.parseDouble(defaultColumnWidthField.getText()));
+                    settings.setMinColumnWidth(Double.parseDouble(minColumnWidthField.getText()));
+                    settings.setMaxColumnWidth(Double.parseDouble(maxColumnWidthField.getText()));
+                    settings.setRowHeightMode(rowHeightModeCombo.getValue());
+                    settings.setDefaultRowHeight(Double.parseDouble(defaultRowHeightField.getText()));
+                    settings.setMinRowHeight(Double.parseDouble(minRowHeightField.getText()));
+                    settings.setMaxRowHeight(Double.parseDouble(maxRowHeightField.getText()));
+                    
                     settings.save();
                     
                     // 重新初始化历史管理器
-                    historyManager = new hbnu.project.ergoucsveditior.model.HistoryManager(
+                    historyManager = new HistoryManager(
                         settings.getMaxHistorySize());
                     
                     // 更新高亮冲突策略
                     if ("随机策略".equals(conflictStrategyCombo.getValue())) {
                         highlightManager.setConflictStrategy(
-                            hbnu.project.ergoucsveditior.model.HighlightManager.ConflictStrategy.随机策略);
+                            HighlightManager.ConflictStrategy.随机策略);
                     } else {
                         highlightManager.setConflictStrategy(
-                            hbnu.project.ergoucsveditior.model.HighlightManager.ConflictStrategy.覆盖策略);
+                            HighlightManager.ConflictStrategy.覆盖策略);
                     }
                     
                     // 刷新表格以应用新设置
@@ -1638,13 +1763,13 @@ public class MainController {
         java.util.List<String> currentButtons = toolbarConfig.getVisibleButtons();
         for (String btn : currentButtons) {
             String displayName = "separator".equals(btn) ? "--- 分隔符 ---" : 
-                hbnu.project.ergoucsveditior.model.ToolbarConfig.getButtonDisplayName(btn);
+                ToolbarConfig.getButtonDisplayName(btn);
             selectedList.getItems().add(btn + ":" + displayName);
         }
         
-        for (String btn : hbnu.project.ergoucsveditior.model.ToolbarConfig.getAllButtons()) {
+        for (String btn : ToolbarConfig.getAllButtons()) {
             if (!currentButtons.contains(btn)) {
-                String displayName = hbnu.project.ergoucsveditior.model.ToolbarConfig.getButtonDisplayName(btn);
+                String displayName = ToolbarConfig.getButtonDisplayName(btn);
                 availableList.getItems().add(btn + ":" + displayName);
             }
         }
@@ -2062,7 +2187,7 @@ public class MainController {
         Label rulesLabel = new Label("已添加的规则：");
         rulesLabel.setStyle("-fx-font-weight: bold;");
         
-        javafx.scene.control.ListView<hbnu.project.ergoucsveditior.model.AutoMarkRule> rulesList = 
+        javafx.scene.control.ListView<AutoMarkRule> rulesList =
             new javafx.scene.control.ListView<>();
         rulesList.getItems().addAll(autoMarkManager.getRules());
         rulesList.setPrefHeight(300);
@@ -2074,7 +2199,7 @@ public class MainController {
         Button saveTemplateBtn = new Button("保存为模板");
         
         removeRuleBtn.setOnAction(e -> {
-            hbnu.project.ergoucsveditior.model.AutoMarkRule selected = rulesList.getSelectionModel().getSelectedItem();
+            AutoMarkRule selected = rulesList.getSelectionModel().getSelectedItem();
             if (selected != null) {
                 rulesList.getItems().remove(selected);
             }
@@ -2088,27 +2213,27 @@ public class MainController {
         
         loadTemplateBtn.setOnAction(e -> {
             // 显示模板选择对话框
-            java.util.List<hbnu.project.ergoucsveditior.model.AutoMarkRule> templates = 
+            java.util.List<AutoMarkRule> templates =
                 autoMarkSettings.getRuleTemplates();
             if (templates.isEmpty()) {
                 showInfo("提示", "没有保存的规则模板");
                 return;
             }
             
-            javafx.scene.control.ChoiceDialog<hbnu.project.ergoucsveditior.model.AutoMarkRule> templateDialog = 
+            javafx.scene.control.ChoiceDialog<AutoMarkRule> templateDialog =
                 new javafx.scene.control.ChoiceDialog<>(templates.get(0), templates);
             templateDialog.setTitle("选择模板");
             templateDialog.setHeaderText("选择要加载的规则模板");
             templateDialog.setContentText("模板:");
             
-            Optional<hbnu.project.ergoucsveditior.model.AutoMarkRule> templateResult = templateDialog.showAndWait();
+            Optional<AutoMarkRule> templateResult = templateDialog.showAndWait();
             if (templateResult.isPresent()) {
                 rulesList.getItems().add(templateResult.get());
             }
         });
         
         saveTemplateBtn.setOnAction(e -> {
-            hbnu.project.ergoucsveditior.model.AutoMarkRule selected = rulesList.getSelectionModel().getSelectedItem();
+            AutoMarkRule selected = rulesList.getSelectionModel().getSelectedItem();
             if (selected != null) {
                 autoMarkSettings.addRuleTemplate(selected);
                 showInfo("成功", "规则已保存为模板");
@@ -2232,8 +2357,8 @@ public class MainController {
                 }
                 
                 // 创建规则
-                hbnu.project.ergoucsveditior.model.AutoMarkRule rule = 
-                    new hbnu.project.ergoucsveditior.model.AutoMarkRule();
+                AutoMarkRule rule =
+                    new AutoMarkRule();
                 rule.setName(ruleNameField.getText());
                 rule.setType(parseRuleType(typeStr));
                 rule.setParameter(parameterField.getText());
@@ -2278,7 +2403,7 @@ public class MainController {
             if (dialogButton == applyButtonType) {
                 // 应用规则
                 autoMarkManager.clearRules();
-                for (hbnu.project.ergoucsveditior.model.AutoMarkRule rule : rulesList.getItems()) {
+                for (AutoMarkRule rule : rulesList.getItems()) {
                     autoMarkManager.addRule(rule);
                 }
                 autoMarkManager.applyRules(csvData);
@@ -2368,30 +2493,30 @@ public class MainController {
     /**
      * 解析规则类型字符串为枚举
      */
-    private hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType parseRuleType(String typeStr) {
-        if (typeStr.contains("大于")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.NUMBER_GREATER;
-        if (typeStr.contains("小于")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.NUMBER_LESS;
-        if (typeStr.contains("等于")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.NUMBER_EQUAL;
-        if (typeStr.contains("质数")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.NUMBER_PRIME;
-        if (typeStr.contains("包含")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.STRING_CONTAINS;
-        if (typeStr.contains("正则")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.STRING_REGEX;
-        if (typeStr.contains("邮箱")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.FORMAT_EMAIL;
-        if (typeStr.contains("手机号")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.FORMAT_PHONE;
-        if (typeStr.contains("URL")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.FORMAT_URL;
-        if (typeStr.contains("身份证")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.FORMAT_ID_CARD;
-        if (typeStr.contains("完全空值")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.EMPTY_NULL;
-        if (typeStr.contains("空白")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.EMPTY_WHITESPACE;
-        if (typeStr.contains("长度为0")) return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.EMPTY_ZERO_LENGTH;
-        return hbnu.project.ergoucsveditior.model.AutoMarkRule.RuleType.NUMBER_GREATER;
+    private AutoMarkRule.RuleType parseRuleType(String typeStr) {
+        if (typeStr.contains("大于")) return AutoMarkRule.RuleType.NUMBER_GREATER;
+        if (typeStr.contains("小于")) return AutoMarkRule.RuleType.NUMBER_LESS;
+        if (typeStr.contains("等于")) return AutoMarkRule.RuleType.NUMBER_EQUAL;
+        if (typeStr.contains("质数")) return AutoMarkRule.RuleType.NUMBER_PRIME;
+        if (typeStr.contains("包含")) return AutoMarkRule.RuleType.STRING_CONTAINS;
+        if (typeStr.contains("正则")) return AutoMarkRule.RuleType.STRING_REGEX;
+        if (typeStr.contains("邮箱")) return AutoMarkRule.RuleType.FORMAT_EMAIL;
+        if (typeStr.contains("手机号")) return AutoMarkRule.RuleType.FORMAT_PHONE;
+        if (typeStr.contains("URL")) return AutoMarkRule.RuleType.FORMAT_URL;
+        if (typeStr.contains("身份证")) return AutoMarkRule.RuleType.FORMAT_ID_CARD;
+        if (typeStr.contains("完全空值")) return AutoMarkRule.RuleType.EMPTY_NULL;
+        if (typeStr.contains("空白")) return AutoMarkRule.RuleType.EMPTY_WHITESPACE;
+        if (typeStr.contains("长度为0")) return AutoMarkRule.RuleType.EMPTY_ZERO_LENGTH;
+        return AutoMarkRule.RuleType.NUMBER_GREATER;
     }
     
     /**
      * 解析应用范围字符串为枚举
      */
-    private hbnu.project.ergoucsveditior.model.AutoMarkRule.ApplyScope parseScopeType(String scopeStr) {
-        if ("选中列".equals(scopeStr)) return hbnu.project.ergoucsveditior.model.AutoMarkRule.ApplyScope.SELECTED_COLUMN;
-        if ("指定列".equals(scopeStr)) return hbnu.project.ergoucsveditior.model.AutoMarkRule.ApplyScope.SPECIFIED_COLUMNS;
-        return hbnu.project.ergoucsveditior.model.AutoMarkRule.ApplyScope.ALL_COLUMNS;
+    private AutoMarkRule.ApplyScope parseScopeType(String scopeStr) {
+        if ("选中列".equals(scopeStr)) return AutoMarkRule.ApplyScope.SELECTED_COLUMN;
+        if ("指定列".equals(scopeStr)) return AutoMarkRule.ApplyScope.SPECIFIED_COLUMNS;
+        return AutoMarkRule.ApplyScope.ALL_COLUMNS;
     }
     
     /**
@@ -3207,7 +3332,7 @@ public class MainController {
         
         // 检查所有规则
         boolean matched = false;
-        for (hbnu.project.ergoucsveditior.model.AutoMarkRule rule : autoMarkManager.getRules()) {
+        for (AutoMarkRule rule : autoMarkManager.getRules()) {
             if (!rule.isEnabled()) {
                 continue;
             }
@@ -3281,42 +3406,56 @@ public class MainController {
             Label label = new Label(hbnu.project.ergoucsveditior.model.KeyBindings.getActionDisplayName(action) + ":");
             TextField field = new TextField();
             
+            // 检查是否为固定快捷键（不可修改）
+            boolean isModifiable = hbnu.project.ergoucsveditior.model.KeyBindings.isModifiable(action);
+            
             javafx.scene.input.KeyCombination binding = keyBindings.getBinding(action);
             if (binding != null) {
                 field.setText(binding.toString());
+            } else if (!isModifiable) {
+                // 对于缩放快捷键，显示固定文本
+                field.setText("Ctrl+滚轮（固定）");
             }
             
-            field.setPromptText("点击并按下快捷键组合");
-            field.setEditable(false);
-            
-            // 监听键盘事件来捕获快捷键
-            field.setOnKeyPressed(event -> {
-                if (event.getCode() != javafx.scene.input.KeyCode.UNDEFINED) {
-                    StringBuilder sb = new StringBuilder();
-                    if (event.isControlDown()) {
-                        sb.append("Ctrl+");
+            if (isModifiable) {
+                field.setPromptText("点击并按下快捷键组合");
+                field.setEditable(false);
+                
+                // 监听键盘事件来捕获快捷键
+                field.setOnKeyPressed(event -> {
+                    if (event.getCode() != javafx.scene.input.KeyCode.UNDEFINED) {
+                        StringBuilder sb = new StringBuilder();
+                        if (event.isControlDown()) {
+                            sb.append("Ctrl+");
+                        }
+                        if (event.isShiftDown()) {
+                            sb.append("Shift+");
+                        }
+                        if (event.isAltDown()) {
+                            sb.append("Alt+");
+                        }
+                        
+                        javafx.scene.input.KeyCode code = event.getCode();
+                        if (code != javafx.scene.input.KeyCode.CONTROL && 
+                            code != javafx.scene.input.KeyCode.SHIFT && 
+                            code != javafx.scene.input.KeyCode.ALT) {
+                            sb.append(code.getName());
+                            field.setText(sb.toString());
+                        }
+                        event.consume();
                     }
-                    if (event.isShiftDown()) {
-                        sb.append("Shift+");
-                    }
-                    if (event.isAltDown()) {
-                        sb.append("Alt+");
-                    }
-                    
-                    javafx.scene.input.KeyCode code = event.getCode();
-                    if (code != javafx.scene.input.KeyCode.CONTROL && 
-                        code != javafx.scene.input.KeyCode.SHIFT && 
-                        code != javafx.scene.input.KeyCode.ALT) {
-                        sb.append(code.getName());
-                        field.setText(sb.toString());
-                    }
-                    event.consume();
-                }
-            });
+                });
+            } else {
+                // 固定快捷键，不可编辑
+                field.setEditable(false);
+                field.setDisable(true);
+                field.setStyle("-fx-opacity: 1.0;"); // 保持文字清晰可见
+            }
             
             // 添加清除按钮
             Button clearButton = new Button("清除");
             clearButton.setOnAction(e -> field.setText(""));
+            clearButton.setDisable(!isModifiable); // 固定快捷键的清除按钮也禁用
             
             grid.add(label, 0, row);
             grid.add(field, 1, row);
@@ -3338,6 +3477,12 @@ public class MainController {
                 try {
                     for (java.util.Map.Entry<String, TextField> entry : fields.entrySet()) {
                         String action = entry.getKey();
+                        
+                        // 跳过固定的快捷键（如缩放）
+                        if (!hbnu.project.ergoucsveditior.model.KeyBindings.isModifiable(action)) {
+                            continue;
+                        }
+                        
                         String keyString = entry.getValue().getText();
                         
                         if (keyString != null && !keyString.trim().isEmpty()) {
@@ -4890,9 +5035,299 @@ public class MainController {
     private void applyInitialTheme() {
         javafx.application.Platform.runLater(() -> {
             if (tableView != null && tableView.getScene() != null) {
+                // 确保rootPane有正确的样式类
+                if (rootPane != null && !rootPane.getStyleClass().contains("root-pane")) {
+                    rootPane.getStyleClass().add("root-pane");
+                }
+                
                 applyTheme();
                 applyTableStyles();
+                
+                // 应用现代化视觉效果
+                applyModernEffects();
             }
+        });
+    }
+    
+    /**
+     * 应用现代化视觉效果
+     */
+    private void applyModernEffects() {
+        if (tableView != null) {
+            // 添加阴影效果使表格更有层次感
+            javafx.scene.effect.DropShadow dropShadow = new javafx.scene.effect.DropShadow();
+            dropShadow.setColor(javafx.scene.paint.Color.rgb(0, 0, 0, 0.12));
+            dropShadow.setRadius(8);
+            dropShadow.setOffsetY(2);
+            tableView.setEffect(dropShadow);
+        }
+        
+        // 优化菜单栏样式
+        if (rootPane != null && rootPane.getTop() != null) {
+            javafx.scene.Node topNode = rootPane.getTop();
+            if (topNode instanceof javafx.scene.layout.VBox) {
+                javafx.scene.layout.VBox vbox = (javafx.scene.layout.VBox) topNode;
+                // 添加渐变背景
+                vbox.setStyle("-fx-background-color: linear-gradient(to bottom, #E8FFFF 0%, #C4EBD6 100%);");
+            }
+        }
+    }
+    
+    /**
+     * 设置表格缩放功能（Ctrl+鼠标滚轮）
+     */
+    private void setupTableZoom() {
+        // 使用Platform.runLater确保在界面完全加载后设置事件
+        javafx.application.Platform.runLater(() -> {
+            // 使用addEventFilter在捕获阶段处理事件，确保能够捕获到
+            rootPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> {
+                // 只在按下Ctrl键时才缩放
+                if (event.isControlDown()) {
+                    event.consume(); // 阻止默认滚动行为
+                    
+                    double currentZoom = settings.getTableZoomLevel();
+                    double delta = event.getDeltaY();
+                    
+                    // 根据滚轮方向调整缩放级别
+                    double zoomChange = delta > 0 ? 0.05 : -0.05;
+                    double newZoom = currentZoom + zoomChange;
+                    
+                    // 计算最小缩放级别（使表格完全显示在窗口中）
+                    double minZoom = calculateMinZoomToFit();
+                    
+                    // 限制缩放范围：最小为能完全显示表格，最大为2.0（200%）
+                    newZoom = Math.max(minZoom, Math.min(2.0, newZoom));
+                    
+                    if (newZoom != currentZoom) {
+                        settings.setTableZoomLevel(newZoom);
+                        applyTableZoom(newZoom);
+                        updateStatus(String.format("缩放级别: %.0f%%", newZoom * 100));
+                    }
+                }
+            });
+        });
+    }
+    
+    /**
+     * 计算最小缩放级别以使表格完全显示在窗口中
+     */
+    private double calculateMinZoomToFit() {
+        if (tableView.getColumns().isEmpty() || tableView.getItems().isEmpty()) {
+            return 0.1; // 默认最小缩放
+        }
+        
+        // 计算表格的总宽度和总高度
+        double totalWidth = 0;
+        for (TableColumn<ObservableList<CSVCell>, ?> column : tableView.getColumns()) {
+            totalWidth += column.getWidth();
+        }
+        
+        double totalHeight = tableView.getItems().size() * settings.getDefaultRowHeight();
+        
+        // 获取可用的显示区域大小
+        double availableWidth = tableView.getWidth();
+        double availableHeight = tableView.getHeight();
+        
+        if (availableWidth <= 0 || availableHeight <= 0) {
+            return 0.1;
+        }
+        
+        // 计算需要的缩放比例
+        double widthRatio = availableWidth / totalWidth;
+        double heightRatio = availableHeight / totalHeight;
+        
+        // 取较小的比例，确保表格完全显示
+        double minZoom = Math.min(widthRatio, heightRatio);
+        
+        // 限制最小缩放为10%，最大为200%
+        return Math.max(0.1, Math.min(2.0, minZoom));
+    }
+    
+    /**
+     * 应用表格缩放
+     */
+    private void applyTableZoom(double zoomLevel) {
+        // 对所有列应用缩放
+        for (TableColumn<ObservableList<CSVCell>, ?> column : tableView.getColumns()) {
+            double baseWidth = getColumnBaseWidth(column);
+            column.setPrefWidth(baseWidth * zoomLevel);
+        }
+        
+        // 通过CSS缩放行高
+        String scaleStyle = String.format(
+            "-fx-fixed-cell-size: %.2f;",
+            settings.getDefaultRowHeight() * zoomLevel
+        );
+        
+        String currentStyle = tableView.getStyle();
+        // 移除旧的fixed-cell-size样式
+        currentStyle = currentStyle.replaceAll("-fx-fixed-cell-size:\\s*[^;]+;", "");
+        tableView.setStyle(currentStyle + " " + scaleStyle);
+        
+        tableView.refresh();
+    }
+    
+    /**
+     * 获取列的基础宽度（未缩放的宽度）
+     */
+    private double getColumnBaseWidth(TableColumn<ObservableList<CSVCell>, ?> column) {
+        // 从列的userData中获取基础宽度，如果没有则使用当前宽度
+        Object userData = column.getUserData();
+        if (userData instanceof Double) {
+            return (Double) userData;
+        }
+        
+        // 第一次获取，保存当前宽度作为基础宽度
+        double baseWidth = column.getWidth() / settings.getTableZoomLevel();
+        column.setUserData(baseWidth);
+        return baseWidth;
+    }
+    
+    /**
+     * 设置列宽调整功能（拖拽列边缘）
+     * 在创建列时调用此方法
+     */
+    private void setupColumnResizing(TableColumn<ObservableList<CSVCell>, ?> column) {
+        // JavaFX的TableColumn已经内置了拖拽调整列宽的功能
+        // 我们只需要添加最大/最小宽度限制
+        
+        double minWidth = settings.getMinColumnWidth();
+        double maxWidth = settings.getMaxColumnWidth();
+        
+        column.setMinWidth(minWidth);
+        column.setMaxWidth(maxWidth);
+        
+        // 根据设置应用列宽模式
+        if ("固定宽度".equals(settings.getColumnWidthMode())) {
+            column.setPrefWidth(settings.getDefaultColumnWidth());
+        } else {
+            // 自动适配内容 - 使用默认值80
+            column.setPrefWidth(80.0);
+        }
+        
+        // 监听列宽变化，保存基础宽度
+        column.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            // 更新基础宽度（去除缩放影响）
+            double baseWidth = newWidth.doubleValue() / settings.getTableZoomLevel();
+            column.setUserData(baseWidth);
+        });
+    }
+    
+    /**
+     * 设置行高（JavaFX TableView通过CSS设置固定行高）
+     */
+    private void applyRowHeightSettings() {
+        double rowHeight = settings.getDefaultRowHeight();
+        
+        if ("固定高度".equals(settings.getRowHeightMode())) {
+            // 使用固定行高
+            tableView.setFixedCellSize(rowHeight);
+        } else {
+            // 自动适配内容 - 移除固定行高
+            tableView.setFixedCellSize(-1);
+        }
+        
+        tableView.refresh();
+    }
+    
+    /**
+     * 设置行拖动功能
+     * 允许用户通过拖动行来重新排列行的顺序
+     */
+    private void setupRowDragAndDrop(TableRow<ObservableList<CSVCell>> row) {
+        // 拖动开始
+        row.setOnDragDetected(event -> {
+            if (!row.isEmpty()) {
+                // 只在点击行号区域或非单元格内容区域时启用拖动
+                // 这样可以避免与单元格编辑冲突
+                javafx.scene.input.Dragboard db = row.startDragAndDrop(javafx.scene.input.TransferMode.MOVE);
+                javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+                content.putString(String.valueOf(row.getIndex()));
+                db.setContent(content);
+                
+                // 添加拖动视觉反馈
+                row.setOpacity(0.5);
+                event.consume();
+            }
+        });
+        
+        // 拖动结束
+        row.setOnDragDone(event -> {
+            row.setOpacity(1.0);
+            event.consume();
+        });
+        
+        // 拖动经过
+        row.setOnDragOver(event -> {
+            if (event.getGestureSource() != row && 
+                event.getDragboard().hasString()) {
+                event.acceptTransferModes(javafx.scene.input.TransferMode.MOVE);
+            }
+            event.consume();
+        });
+        
+        // 拖动进入
+        row.setOnDragEntered(event -> {
+            if (event.getGestureSource() != row && 
+                event.getDragboard().hasString() &&
+                !row.isEmpty()) {
+                row.setStyle("-fx-border-color: #2196F3; -fx-border-width: 2px;");
+            }
+            event.consume();
+        });
+        
+        // 拖动离开
+        row.setOnDragExited(event -> {
+            row.setStyle("");
+            event.consume();
+        });
+        
+        // 放下
+        row.setOnDragDropped(event -> {
+            javafx.scene.input.Dragboard db = event.getDragboard();
+            boolean success = false;
+            
+            if (db.hasString() && !row.isEmpty()) {
+                int draggedIndex = Integer.parseInt(db.getString());
+                int dropIndex = row.getIndex();
+                
+                if (draggedIndex != dropIndex && draggedIndex >= 0 && dropIndex >= 0) {
+                    // 保存当前状态到历史记录
+                    saveHistory();
+                    
+                    // 获取被拖动的行数据
+                    ObservableList<CSVCell> draggedRow = csvData.getData().get(draggedIndex);
+                    
+                    // 从原位置移除
+                    csvData.getData().remove(draggedIndex);
+                    
+                    // 插入到新位置
+                    // 如果目标位置在源位置之后，需要调整索引
+                    int insertIndex = dropIndex;
+                    if (draggedIndex < dropIndex) {
+                        insertIndex = dropIndex - 1;
+                    }
+                    csvData.getData().add(insertIndex, draggedRow);
+                    
+                    // 同时移动高亮信息
+                    highlightManager.moveRow(draggedIndex, insertIndex);
+                    
+                    // 刷新表格
+                    tableView.refresh();
+                    
+                    // 选中移动后的行
+                    tableView.getSelectionModel().select(insertIndex);
+                    
+                    // 更新状态
+                    updateStatus(String.format("已将第 %d 行移动到第 %d 行", draggedIndex + 1, insertIndex + 1));
+                    updateUndoButton();
+                    
+                    success = true;
+                }
+            }
+            
+            event.setDropCompleted(success);
+            event.consume();
         });
     }
 }

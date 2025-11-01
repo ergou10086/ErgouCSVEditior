@@ -1,4 +1,4 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.rule;
 
 import java.io.Serializable;
 

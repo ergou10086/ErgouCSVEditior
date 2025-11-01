@@ -1,4 +1,7 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.settings;
+
+import hbnu.project.ergoucsveditior.manager.ConfigManager;
+import hbnu.project.ergoucsveditior.rule.AutoMarkRule;
 
 import java.io.*;
 import java.util.*;
@@ -7,9 +10,6 @@ import java.util.*;
  * 自动标记设置管理
  */
 public class AutoMarkSettings {
-    private static final String SETTINGS_FILE = "csv_editor_automark_settings.properties";
-    private static final String RULES_FILE = "csv_editor_automark_rules.dat";
-    
     private Properties properties;
     
     // 默认颜色设置
@@ -43,19 +43,17 @@ public class AutoMarkSettings {
      */
     public void load() {
         // 加载颜色设置
-        File file = new File(SETTINGS_FILE);
-        if (file.exists()) {
-            try (FileInputStream fis = new FileInputStream(file)) {
-                properties.load(fis);
+        try (InputStream is = ConfigManager.getConfigInputStream(ConfigManager.AUTOMARK_SETTINGS_FILE)) {
+            if (is != null) {
+                properties.load(is);
                 
                 numberMarkColor = properties.getProperty("numberMarkColor", numberMarkColor);
                 stringMarkColor = properties.getProperty("stringMarkColor", stringMarkColor);
                 formatMarkColor = properties.getProperty("formatMarkColor", formatMarkColor);
                 emptyMarkColor = properties.getProperty("emptyMarkColor", emptyMarkColor);
-                
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         
         // 加载规则模板
@@ -72,8 +70,8 @@ public class AutoMarkSettings {
         properties.setProperty("formatMarkColor", formatMarkColor);
         properties.setProperty("emptyMarkColor", emptyMarkColor);
         
-        try (FileOutputStream fos = new FileOutputStream(SETTINGS_FILE)) {
-            properties.store(fos, "CSV Editor Auto Mark Settings");
+        try (OutputStream os = ConfigManager.getConfigOutputStream(ConfigManager.AUTOMARK_SETTINGS_FILE)) {
+            properties.store(os, "CSV Editor Auto Mark Settings");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,7 +85,7 @@ public class AutoMarkSettings {
      */
     @SuppressWarnings("unchecked")
     private void loadRules() {
-        File file = new File(RULES_FILE);
+        File file = ConfigManager.getRulesFile(ConfigManager.AUTOMARK_RULES_FILE);
         if (file.exists()) {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
                 savedRules = (List<AutoMarkRule>) ois.readObject();
@@ -101,7 +99,8 @@ public class AutoMarkSettings {
      * 保存规则模板
      */
     private void saveRules() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(RULES_FILE))) {
+        File file = ConfigManager.getRulesFile(ConfigManager.AUTOMARK_RULES_FILE);
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
             oos.writeObject(savedRules);
         } catch (IOException e) {
             e.printStackTrace();

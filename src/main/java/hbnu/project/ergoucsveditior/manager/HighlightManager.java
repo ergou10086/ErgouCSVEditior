@@ -1,5 +1,6 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.manager;
 
+import hbnu.project.ergoucsveditior.model.HighlightInfo;
 import javafx.scene.paint.Color;
 import java.util.HashMap;
 import java.util.Map;
@@ -285,6 +286,71 @@ public class HighlightManager {
     public void setConflictStrategy(ConflictStrategy strategy) {
         this.conflictStrategy = strategy;
         // 切换策略时清除冲突解决缓存
+        clearConflictResolutions();
+    }
+    
+    /**
+     * 移动行时更新高亮信息
+     * @param fromRow 源行索引
+     * @param toRow 目标行索引
+     */
+    public void moveRow(int fromRow, int toRow) {
+        // 1. 移动行高亮
+        HighlightInfo rowHighlight = rowHighlights.remove(fromRow);
+        if (rowHighlight != null) {
+            rowHighlights.put(toRow, rowHighlight);
+        }
+        
+        // 2. 移动单元格高亮
+        Map<String, HighlightInfo> newCellHighlights = new HashMap<>();
+        for (Map.Entry<String, HighlightInfo> entry : cellHighlights.entrySet()) {
+            String key = entry.getKey();
+            String[] parts = key.split(",");
+            int row = Integer.parseInt(parts[0]);
+            int col = Integer.parseInt(parts[1]);
+            
+            // 更新行索引
+            if (row == fromRow) {
+                // 被移动的行
+                newCellHighlights.put(toRow + "," + col, entry.getValue());
+            } else if (fromRow < toRow) {
+                // 向下移动：中间的行向上移
+                if (row > fromRow && row <= toRow) {
+                    newCellHighlights.put((row - 1) + "," + col, entry.getValue());
+                } else {
+                    newCellHighlights.put(key, entry.getValue());
+                }
+            } else {
+                // 向上移动：中间的行向下移
+                if (row >= toRow && row < fromRow) {
+                    newCellHighlights.put((row + 1) + "," + col, entry.getValue());
+                } else {
+                    newCellHighlights.put(key, entry.getValue());
+                }
+            }
+        }
+        cellHighlights = newCellHighlights;
+        
+        // 3. 更新中间行的行高亮
+        if (fromRow < toRow) {
+            // 向下移动
+            for (int i = fromRow + 1; i <= toRow; i++) {
+                HighlightInfo highlight = rowHighlights.remove(i);
+                if (highlight != null) {
+                    rowHighlights.put(i - 1, highlight);
+                }
+            }
+        } else if (fromRow > toRow) {
+            // 向上移动
+            for (int i = toRow; i < fromRow; i++) {
+                HighlightInfo highlight = rowHighlights.remove(i);
+                if (highlight != null) {
+                    rowHighlights.put(i + 1, highlight);
+                }
+            }
+        }
+        
+        // 4. 清除冲突解决缓存（因为行号改变了）
         clearConflictResolutions();
     }
 }

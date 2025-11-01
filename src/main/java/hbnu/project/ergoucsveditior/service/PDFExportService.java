@@ -6,8 +6,8 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import hbnu.project.ergoucsveditior.model.CSVData;
-import hbnu.project.ergoucsveditior.model.ExportSettings;
-import hbnu.project.ergoucsveditior.model.HighlightManager;
+import hbnu.project.ergoucsveditior.settings.ExportSettings;
+import hbnu.project.ergoucsveditior.manager.HighlightManager;
 
 
 import java.io.File;

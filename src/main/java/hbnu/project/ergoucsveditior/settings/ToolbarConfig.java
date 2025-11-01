@@ -1,5 +1,6 @@
-package hbnu.project.ergoucsveditior.model;
+package hbnu.project.ergoucsveditior.settings;
 
+import hbnu.project.ergoucsveditior.manager.ConfigManager;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,8 +12,6 @@ import java.util.Properties;
  * 管理工具栏按钮的显示和样式
  */
 public class ToolbarConfig {
-    private static final String CONFIG_FILE = "csv_editor_toolbar.properties";
-    
     private Properties properties;
     
     // 按钮ID常量
@@ -78,24 +77,7 @@ public class ToolbarConfig {
      * 从文件加载配置
      */
     public void load() {
-        InputStream inputStream = null;
-        boolean loadedFromFile = false;
-        
-        try {
-            // 首先尝试从用户目录加载配置文件
-            File userConfigFile = new File(CONFIG_FILE);
-            if (userConfigFile.exists()) {
-                inputStream = new FileInputStream(userConfigFile);
-                loadedFromFile = true;
-            } else {
-                // 如果用户目录没有配置文件，尝试从classpath加载
-                inputStream = getClass().getClassLoader().getResourceAsStream(CONFIG_FILE);
-                if (inputStream == null) {
-                    // 尝试从当前包路径加载
-                    inputStream = getClass().getResourceAsStream("/" + CONFIG_FILE);
-                }
-            }
-            
+        try (InputStream inputStream = ConfigManager.getConfigInputStream(ConfigManager.TOOLBAR_FILE)) {
             if (inputStream != null) {
                 properties.load(inputStream);
                 
@@ -123,24 +105,11 @@ public class ToolbarConfig {
                 buttonColor = properties.getProperty("buttonColor", buttonColor);
                 buttonHoverColor = properties.getProperty("buttonHoverColor", buttonHoverColor);
                 buttonTextColor = properties.getProperty("buttonTextColor", buttonTextColor);
-                
-                // 如果是从classpath加载的，保存一份到用户目录，方便后续修改
-                if (!loadedFromFile) {
-                    save();
-                }
             } else {
                 System.out.println("工具栏配置文件不存在，使用默认配置");
             }
         } catch (IOException e) {
             System.out.println("加载工具栏配置文件时出错，使用默认配置: " + e.getMessage());
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    // 忽略关闭异常
-                }
-            }
         }
     }
     
@@ -156,8 +125,8 @@ public class ToolbarConfig {
         properties.setProperty("buttonHoverColor", buttonHoverColor);
         properties.setProperty("buttonTextColor", buttonTextColor);
         
-        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
-            properties.store(fos, "CSV Editor Toolbar Configuration");
+        try (OutputStream os = ConfigManager.getConfigOutputStream(ConfigManager.TOOLBAR_FILE)) {
+            properties.store(os, "CSV Editor Toolbar Configuration");
         } catch (IOException e) {
             System.err.println("无法保存工具栏配置文件: " + e.getMessage());
         }
